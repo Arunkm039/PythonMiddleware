@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Bridge — Two-Factor Verification</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0c0d12;--surface:#161822;--surface2:#1c1f2e;--border:#282b3d;
+    --text:#dfe0e6;--muted:#747a92;--accent:#7c6ef0;--red:#e74c3c;
+    --font:'Segoe UI',system-ui,sans-serif;--mono:'Consolas','SF Mono',monospace;
+  }
+  html,body{height:100%}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);
+       display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+        padding:32px 28px;width:100%;max-width:360px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .brand .logo{font-size:1.4rem}
+  .brand h1{font-size:1.05rem;font-weight:600}
+  .sub{font-size:.78rem;color:var(--muted);margin-bottom:22px;line-height:1.5}
+  .shield{font-size:2.4rem;text-align:center;margin-bottom:14px}
+  label{display:block;font-size:.72rem;color:var(--muted);text-transform:uppercase;
+        letter-spacing:.05em;margin-bottom:6px}
+  input{width:100%;font-family:var(--mono);font-size:1.4rem;letter-spacing:.25em;
+        padding:12px;border-radius:6px;border:1px solid var(--border);
+        background:var(--surface2);color:var(--text);text-align:center}
+  input:focus{outline:none;border-color:var(--accent)}
+  button{width:100%;font-family:var(--font);font-size:.88rem;font-weight:600;
+         padding:11px;border-radius:6px;border:none;background:var(--accent);
+         color:#fff;cursor:pointer;margin-top:20px}
+  button:hover{filter:brightness(1.1)}
+  .err{background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);
+       color:var(--red);padding:9px 12px;border-radius:6px;font-size:.8rem;margin-bottom:16px}
+  .foot{text-align:center;font-size:.7rem;color:var(--muted);margin-top:18px}
+  .back{text-align:center;margin-top:12px}
+  .back a{font-size:.75rem;color:var(--muted);text-decoration:none}
+  .back a:hover{color:var(--text)}
+</style>
+</head>
+<body>
+  <form class="card" method="post" action="/mfa-verify">
+    <div class="brand"><span class="logo">⇋</span><h1>Bridge</h1></div>
+    <div class="sub">Signed in as <b>{{ username }}</b>. Enter the code from your authenticator app to continue.</div>
+
+    <div class="shield">🔐</div>
+
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+
+    <label for="token">Authenticator code</label>
+    <input id="token" name="token" type="text" inputmode="numeric"
+           pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"
+           placeholder="000000" autofocus required/>
+
+    <button type="submit">Verify</button>
+
+    <div class="back"><a href="/login">← Use a different account</a></div>
+    <div class="foot">Code refreshes every 30 seconds.</div>
+  </form>
+</body>
+</html>

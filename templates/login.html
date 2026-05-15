@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Bridge — Sign in</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0c0d12;--surface:#161822;--surface2:#1c1f2e;--border:#282b3d;
+    --text:#dfe0e6;--muted:#747a92;--accent:#7c6ef0;--red:#e74c3c;
+    --font:'Segoe UI',system-ui,sans-serif;
+  }
+  html,body{height:100%}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);
+       display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+        padding:32px 28px;width:100%;max-width:360px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+  .brand .logo{font-size:1.4rem}
+  .brand h1{font-size:1.05rem;font-weight:600}
+  .sub{font-size:.78rem;color:var(--muted);margin-bottom:22px;line-height:1.5}
+  label{display:block;font-size:.72rem;color:var(--muted);text-transform:uppercase;
+        letter-spacing:.05em;margin-bottom:6px;margin-top:14px}
+  input{width:100%;font-family:var(--font);font-size:.9rem;padding:10px 12px;
+        border-radius:6px;border:1px solid var(--border);background:var(--surface2);
+        color:var(--text)}
+  input:focus{outline:none;border-color:var(--accent)}
+  button{width:100%;font-family:var(--font);font-size:.88rem;font-weight:600;
+         padding:11px;border-radius:6px;border:none;background:var(--accent);
+         color:#fff;cursor:pointer;margin-top:20px}
+  button:hover{filter:brightness(1.1)}
+  .err{background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);
+       color:var(--red);padding:9px 12px;border-radius:6px;font-size:.8rem;
+       margin-bottom:4px}
+  .foot{text-align:center;font-size:.7rem;color:var(--muted);margin-top:18px}
+</style>
+</head>
+<body>
+  <form class="card" method="post" action="/login">
+    <div class="brand"><span class="logo">⇋</span><h1>Bridge</h1></div>
+    <div class="sub">NetSuite ↔ Bank SFTP middleware.<br>Sign in to access the dashboard.</div>
+
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+
+    <input type="hidden" name="next" value="{{ next }}"/>
+
+    <label for="username">Username</label>
+    <input id="username" name="username" type="text" autocomplete="username"
+           autofocus required/>
+
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required/>
+
+    <button type="submit">Sign in</button>
+
+    <div class="foot">Authorized use only. All access is logged.</div>
+  </form>
+</body>
+</html>

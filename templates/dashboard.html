@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Bridge Dashboard</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0c0d12;--surface:#161822;--surface2:#1c1f2e;--border:#282b3d;
+    --text:#dfe0e6;--muted:#747a92;--accent:#7c6ef0;
+    --green:#2ecc71;--red:#e74c3c;--amber:#f39c12;--blue:#3498db;
+    --font:'Segoe UI',system-ui,sans-serif;--mono:'Consolas','SF Mono',monospace;
+  }
+  body{font-family:var(--font);background:var(--bg);color:var(--text);padding:24px;max-width:1060px;margin:0 auto}
+
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:16px;flex-wrap:wrap}
+  header h1{font-size:1.2rem;font-weight:600}
+  header .right{display:flex;align-items:center;gap:14px;font-size:.75rem;color:var(--muted)}
+  header .live{display:flex;align-items:center;gap:6px}
+  header .live .pulse{width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 1.5s infinite}
+  header .user{display:flex;align-items:center;gap:8px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface)}
+  header .user b{color:var(--text);font-weight:600}
+  header .user form{display:inline}
+  header .logout-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.75rem;padding:0}
+  header .logout-btn:hover{color:var(--red)}
+  @keyframes blink{50%{opacity:.3}}
+
+  .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+
+  .notif-bar{margin-bottom:16px;display:flex;flex-direction:column;gap:6px}
+  .notif{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:6px;font-size:.8rem;
+    animation:slideIn .3s ease-out}
+  @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+  .notif-dup{background:rgba(124,110,240,.1);border:1px solid rgba(124,110,240,.25);color:var(--accent)}
+  .notif-fail{background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.25);color:var(--red)}
+  .notif-ok{background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.25);color:var(--green)}
+  .notif-info{background:rgba(52,152,219,.1);border:1px solid rgba(52,152,219,.25);color:var(--blue)}
+  .notif .icon{font-size:1rem;flex-shrink:0}
+  .notif .msg{flex:1}
+  .notif .time{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+  .notif .dismiss{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:2px 6px}
+  .notif .dismiss:hover{color:var(--text)}
+  .card{background:var(--surface);border-radius:8px;padding:16px;border-top:3px solid var(--muted)}
+  .card .n{font-size:2rem;font-weight:700;font-family:var(--mono)}
+  .card .l{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+  .card-sent{border-color:var(--green)} .card-sent .n{color:var(--green)}
+  .card-recv{border-color:var(--blue)}  .card-recv .n{color:var(--blue)}
+  .card-fail{border-color:var(--red)}   .card-fail .n{color:var(--red)}
+  .card-pend{border-color:var(--amber)} .card-pend .n{color:var(--amber)}
+  .card-dup{border-color:var(--accent)} .card-dup .n{color:var(--accent)}
+
+  .bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+  .bar select,.bar button{font-family:var(--font);font-size:.8rem;padding:6px 12px;border-radius:6px;
+    border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer}
+  .bar select:hover,.bar button:hover{border-color:var(--accent)}
+  .bar .spacer{flex:1}
+  .upload-btn{background:var(--accent)!important;border-color:var(--accent)!important;color:#fff!important;font-weight:600}
+
+  table{width:100%;border-collapse:collapse;font-size:.82rem;background:var(--surface);border-radius:8px;overflow:hidden}
+  th{background:var(--surface2);text-align:left;padding:10px 14px;font-size:.7rem;text-transform:uppercase;
+     letter-spacing:.05em;color:var(--muted)}
+  td{padding:10px 14px;border-top:1px solid var(--border)}
+
+  .badge{display:inline-block;padding:2px 10px;border-radius:5px;font-size:.7rem;font-weight:600;text-transform:uppercase}
+  .b-pending,.b-transferring{background:rgba(243,156,18,.12);color:var(--amber)}
+  .b-sent{background:rgba(46,204,113,.12);color:var(--green)}
+  .b-received{background:rgba(52,152,219,.12);color:var(--blue)}
+  .b-failed{background:rgba(231,76,60,.12);color:var(--red)}
+  .b-duplicate{background:rgba(124,110,240,.12);color:var(--accent)}
+  .b-abandoned{background:rgba(116,122,146,.15);color:var(--muted)}
+
+  .dir{font-family:var(--mono);font-size:.72rem;padding:2px 7px;border-radius:4px}
+  .d-outbound{background:rgba(124,110,240,.12);color:var(--accent)}
+  .d-inbound{background:rgba(52,152,219,.12);color:var(--blue)}
+
+  .mono{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+  .err{color:var(--red);font-size:.78rem;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+  .empty{text-align:center;color:var(--muted);padding:40px!important}
+
+  .retry{background:none;border:1px solid var(--border);color:var(--accent);font-size:.7rem;
+    padding:3px 9px;border-radius:5px;cursor:pointer;font-family:var(--font)}
+  .retry:hover{border-color:var(--accent)}
+  .retry:disabled{opacity:.5;cursor:wait}
+  .abandon{background:none;border:1px solid var(--border);color:var(--muted);font-size:.7rem;
+    padding:3px 9px;border-radius:5px;cursor:pointer;font-family:var(--font);margin-left:4px}
+  .abandon:hover{border-color:var(--red);color:var(--red)}
+  .del-transfer{background:none;border:1px solid rgba(231,76,60,.35);color:var(--red);font-size:.7rem;
+    padding:3px 9px;border-radius:5px;cursor:pointer;font-family:var(--font);margin-left:4px}
+  .del-transfer:hover{background:rgba(231,76,60,.12);border-color:var(--red)}
+  .detail-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:2px 6px}
+  .detail-btn:hover{color:var(--text)}
+
+  .sortable{cursor:pointer;user-select:none}
+  .sortable:hover{color:var(--text)}
+  .sort-ic{margin-left:3px;color:var(--accent);font-size:.65rem}
+
+  .bar input[type=date]{font-family:var(--font);font-size:.8rem;padding:6px 8px;border-radius:6px;
+    border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer}
+  .bar input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6)}
+  .bar input[type=date]:hover{border-color:var(--accent)}
+  .bar label{font-size:.75rem;color:var(--muted);white-space:nowrap}
+  .clear-btn{background:none;border:1px solid var(--border);color:var(--muted);font-size:.8rem;
+    padding:6px 10px;border-radius:6px;cursor:pointer;font-family:var(--font)}
+  .clear-btn:hover{border-color:var(--red);color:var(--red)}
+
+  .fi-actions{display:flex;gap:4px;margin-left:auto;flex-shrink:0}
+  .fi-btn{background:none;border:1px solid var(--border);color:var(--muted);font-size:.68rem;
+    padding:2px 8px;border-radius:4px;cursor:pointer;font-family:var(--font)}
+  .fi-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .fi-btn-dl:hover{border-color:var(--green)!important;color:var(--green)!important}
+
+  .file-content{font-family:var(--mono);font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+    max-height:420px;overflow-y:auto;background:var(--surface2);padding:12px;border-radius:6px;
+    border:1px solid var(--border);color:var(--text);margin-top:10px}
+
+  .pager{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;font-size:.82rem;color:var(--muted)}
+  .pager button{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;
+    padding:5px 12px;cursor:pointer;font-family:var(--font);font-size:.8rem}
+  .pager button:disabled{opacity:.35;cursor:default}
+  .pager button:not(:disabled):hover{border-color:var(--accent)}
+
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;align-items:center;justify-content:center}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:500px;max-width:92vw;
+    max-height:75vh;overflow-y:auto;padding:24px}
+  .modal h3{margin-bottom:14px;font-size:1rem}
+  .modal .x{float:right;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer}
+  .log{padding:6px 0;border-bottom:1px solid var(--border);font-size:.8rem;display:flex;gap:8px}
+  .log:last-child{border:none}
+  .log-t{color:var(--muted);font-family:var(--mono);font-size:.72rem;min-width:140px;flex-shrink:0}
+
+  .upload-zone{display:none;background:var(--surface);border:2px dashed var(--border);border-radius:8px;
+    padding:24px;text-align:center;margin-bottom:16px}
+  .upload-zone.show{display:block}
+  .upload-zone p{color:var(--muted);margin-bottom:10px;font-size:.85rem}
+
+  .users-zone{display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;
+    padding:20px;margin-bottom:16px}
+  .users-zone.show{display:block}
+  .users-zone h3{font-size:.82rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:14px}
+  .user-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.82rem}
+  .user-row:last-child{border:none}
+  .user-row .uname{flex:1;font-weight:600}
+  .user-row .umfa{font-size:.7rem;padding:2px 7px;border-radius:4px;font-weight:600}
+  .mfa-on{background:rgba(46,204,113,.12);color:var(--green)}
+  .mfa-off{background:rgba(243,156,18,.12);color:var(--amber)}
+  .user-row .udel{background:none;border:1px solid var(--border);color:var(--muted);
+    font-size:.7rem;padding:2px 9px;border-radius:5px;cursor:pointer;font-family:var(--font)}
+  .user-row .udel:hover{border-color:var(--red);color:var(--red)}
+  .add-user-form{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .add-user-form input{font-family:var(--font);font-size:.8rem;padding:6px 10px;border-radius:6px;
+    border:1px solid var(--border);background:var(--surface2);color:var(--text);flex:1;min-width:120px}
+  .add-user-form input:focus{outline:none;border-color:var(--accent)}
+  .add-user-form button{font-family:var(--font);font-size:.8rem;font-weight:600;padding:6px 14px;
+    border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap}
+  .add-user-form button:hover{filter:brightness(1.1)}
+
+  .folders-zone{display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;
+    padding:20px;margin-bottom:16px}
+  .folders-zone.show{display:block}
+  .folders-zone h3{font-size:.82rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px}
+  .folder-crumb{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:.78rem;margin-bottom:12px;
+    color:var(--muted)}
+  .folder-crumb span{cursor:pointer;color:var(--accent)}
+  .folder-crumb span:hover{text-decoration:underline}
+  .folder-crumb .sep{color:var(--border);user-select:none}
+  .folder-items{display:flex;flex-direction:column;gap:2px}
+  .fi{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:5px;font-size:.82rem;
+    cursor:pointer;border:1px solid transparent}
+  .fi:hover{background:var(--surface2);border-color:var(--border)}
+  .fi .fi-icon{font-size:1rem;width:22px;text-align:center;flex-shrink:0}
+  .fi .fi-name{flex:1;font-family:var(--mono);word-break:break-all}
+  .fi.is-file{cursor:default}
+  .fi .fi-meta{font-size:.7rem;color:var(--muted);white-space:nowrap}
+
+  @media(max-width:600px){.cards{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⇋ Bridge Dashboard</h1>
+  <div class="right">
+    <div class="live"><div class="pulse"></div><span id="pg-dot" style="color:var(--green)">●</span> PostgreSQL · auto-refresh 3s</div>
+    <div class="user">
+      👤 <b>{{ user }}</b>
+      <span style="font-size:.68rem;padding:2px 7px;border-radius:4px;font-weight:600;{% if role == 'admin' %}background:rgba(124,110,240,.15);color:var(--accent){% else %}background:rgba(52,152,219,.12);color:var(--blue){% endif %}">{{ role }}</span>
+      <form method="post" action="/logout"><button type="submit" class="logout-btn">Log out</button></form>
+    </div>
+  </div>
+</header>
+
+<div class="cards">
+  <div class="card card-sent"><div class="n" id="c-sent">0</div><div class="l">Sent to bank</div></div>
+  <div class="card card-recv"><div class="n" id="c-recv">0</div><div class="l">Received</div></div>
+  <div class="card card-fail"><div class="n" id="c-fail">0</div><div class="l">Failed</div></div>
+  <div class="card card-pend"><div class="n" id="c-pend">0</div><div class="l">Pending</div></div>
+  <div class="card card-dup"><div class="n" id="c-dup">0</div><div class="l">Duplicate</div></div>
+</div>
+
+<div class="notif-bar" id="notif-bar"></div>
+
+<div class="bar">
+  <select id="f-status">
+    <option value="">All statuses</option>
+    <option value="pending">Pending</option><option value="transferring">Transferring</option>
+    <option value="sent">Sent</option><option value="received">Received</option>
+    <option value="failed">Failed</option><option value="duplicate">Duplicate</option>
+    <option value="abandoned">Abandoned</option>
+  </select>
+  <select id="f-dir">
+    <option value="">All directions</option>
+    <option value="outbound">Outbound</option><option value="inbound">Inbound</option>
+  </select>
+  <select id="f-bank" onchange="onBankFilterChange()"><option value="">All banks</option></select>
+  <select id="f-account" disabled><option value="">All accounts</option></select>
+  <label>From</label><input type="date" id="f-date-from">
+  <label>To</label><input type="date" id="f-date-to">
+  <button onclick="page=1;loadTransfers()">Refresh</button>
+  <button class="clear-btn" onclick="clearFilters()">✕ Clear</button>
+  <div class="spacer"></div>
+  <button class="upload-btn" onclick="closeAllPanels();document.getElementById('uzone').classList.toggle('show')">⬆ Upload</button>
+  <button onclick="toggleFolders()" style="border-color:rgba(52,152,219,.3);color:var(--blue)">📁 Folders</button>
+{% if role == 'admin' %}<button onclick="toggleUsers()" style="border-color:rgba(124,110,240,.4);color:var(--accent)">👥 Users</button>{% endif %}
+</div>
+
+<div class="upload-zone" id="uzone">
+  <p>Upload a file into the transfer pipeline</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+    <select id="u-dir" style="font-family:var(--font);font-size:.8rem;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text)">
+      <option value="outbound">→ Bank (outbound)</option>
+      <option value="inbound">→ NetSuite (inbound)</option>
+    </select>
+    <select id="u-bank" onchange="onUploadBankChange()" style="font-family:var(--font);font-size:.8rem;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text)">
+      <option value="">Select bank…</option>
+    </select>
+    <select id="u-account" disabled style="font-family:var(--font);font-size:.8rem;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);opacity:.6">
+      <option value="">All accounts</option>
+    </select>
+  </div>
+  <input type="file" id="u-file" style="font-size:.8rem;color:var(--muted);margin-bottom:8px"/>
+  <br><button class="upload-btn" onclick="doUpload()" style="margin-top:2px">Send</button>
+</div>
+
+{% if role == 'admin' %}
+<div class="users-zone" id="userszone">
+  <h3>User Management</h3>
+  <div id="user-list"><span style="color:var(--muted);font-size:.82rem">Loading…</span></div>
+  <div class="add-user-form">
+    <input id="new-username" type="text" placeholder="Username" autocomplete="off"/>
+    <input id="new-password" type="password" placeholder="Password (min 8 chars)" autocomplete="new-password"/>
+    <select id="new-role" style="font-family:var(--font);font-size:.8rem;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text)">
+      <option value="readonly">Read-only</option>
+      <option value="admin">Admin</option>
+    </select>
+    <button onclick="addUser()">Add User</button>
+  </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal-bg" id="reset-modal" onclick="if(event.target===this)closeResetModal()">
+  <div class="modal" style="max-width:360px">
+    <button class="x" onclick="closeResetModal()">✕</button>
+    <h3>Reset Password</h3>
+    <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px">User: <b id="reset-username-label"></b><br>MFA will be cleared and re-enrolled on next login.</p>
+    <label style="display:block;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">New Password</label>
+    <input id="reset-password-input" type="password" placeholder="Min 8 characters"
+      style="width:100%;font-family:var(--font);font-size:.9rem;padding:9px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);margin-bottom:4px"/>
+    <button onclick="submitResetPassword()" style="width:100%;margin-top:12px;font-family:var(--font);font-size:.88rem;font-weight:600;padding:10px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer">Reset Password</button>
+  </div>
+</div>
+{% endif %}
+
+
+<div class="folders-zone" id="folderszone">
+  <h3>📁 Folder Browser</h3>
+  <div class="folder-crumb" id="folder-crumb"></div>
+  <div class="folder-items" id="folder-items"><span style="color:var(--muted);font-size:.82rem">Loading…</span></div>
+</div>
+
+<table>
+  <thead><tr>
+    <th class="sortable" onclick="changeSort('id')">#<span class="sort-ic" id="si-id">▼</span></th>
+    <th class="sortable" onclick="changeSort('filename')">Filename<span class="sort-ic" id="si-filename"></span></th>
+    <th>Direction</th>
+    <th class="sortable" onclick="changeSort('status')">Status<span class="sort-ic" id="si-status"></span></th>
+    <th class="sortable" onclick="changeSort('size_bytes')">Size<span class="sort-ic" id="si-size_bytes"></span></th>
+    <th>Retries</th>
+    <th>Error</th>
+    <th class="sortable" onclick="changeSort('updated_at')">Updated<span class="sort-ic" id="si-updated_at"></span></th>
+    <th></th>
+  </tr></thead>
+  <tbody id="tbody"><tr><td class="empty" colspan="9">Waiting for transfers…</td></tr></tbody>
+</table>
+
+<div class="pager">
+  <button id="prev-btn" onclick="changePage(-1)" disabled>← Prev</button>
+  <span id="page-info">Page 1</span>
+  <button id="next-btn" onclick="changePage(1)" disabled>Next →</button>
+</div>
+
+<div class="modal-bg" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <button class="x" onclick="closeModal()">✕</button>
+    <h3 id="m-title">Transfer</h3>
+    <div id="m-body"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="fv-modal" onclick="if(event.target===this)closeFvModal()">
+  <div class="modal" style="width:720px;max-width:96vw">
+    <button class="x" onclick="closeFvModal()">✕</button>
+    <h3 id="fv-title" style="word-break:break-all"></h3>
+    <p id="fv-meta" style="font-size:.72rem;color:var(--muted);margin:6px 0 0"></p>
+    <pre id="fv-body" class="file-content"></pre>
+  </div>
+</div>
+
+<script>
+let page = 1;
+const perPage = 50;
+let totalRecords = 0;
+let sortBy = 'id', sortDir = 'desc';
+let banksData = [];
+
+/* ---- auth-aware fetch: redirect to /login on 401 ---- */
+async function authedFetch(url, opts) {
+  const r = await fetch(url, opts);
+  if (r.status === 401) { window.location.href = '/login?next=' + encodeURIComponent(location.pathname); throw new Error('auth'); }
+  return r;
+}
+
+async function loadSummary() {
+  try {
+    const s = await (await authedFetch('/api/summary')).json();
+    document.getElementById('c-sent').textContent = (s.sent||0).toLocaleString();
+    document.getElementById('c-recv').textContent = (s.received||0).toLocaleString();
+    document.getElementById('c-fail').textContent = (s.failed||0).toLocaleString();
+    document.getElementById('c-pend').textContent = ((s.pending||0)+(s.transferring||0)).toLocaleString();
+    document.getElementById('c-dup').textContent = (s.duplicate||0).toLocaleString();
+  } catch(e) { console.error(e); }
+}
+
+async function loadTransfers() {
+  const fs = document.getElementById('f-status').value;
+  const fd = document.getElementById('f-dir').value;
+  const fb = document.getElementById('f-bank').value;
+  const fa = document.getElementById('f-account').value;
+  const df = document.getElementById('f-date-from').value;
+  const dt = document.getElementById('f-date-to').value;
+  const params = new URLSearchParams({page, per_page: perPage, sort_by: sortBy, sort_dir: sortDir});
+  if (fs) params.set('status', fs);
+  if (fd) params.set('direction', fd);
+  if (fb) params.set('bank_id', fb);
+  if (fa) params.set('account_id', fa);
+  if (df) params.set('date_from', df);
+  if (dt) params.set('date_to', dt);
+  try {
+    const d = await (await authedFetch('/api/transfers?'+params)).json();
+    totalRecords = d.total;
+    renderTable(d.items);
+    renderPager();
+  } catch(e) { console.error(e); }
+}
+
+function changeSort(col) {
+  if (sortBy === col) { sortDir = sortDir === 'desc' ? 'asc' : 'desc'; }
+  else { sortBy = col; sortDir = 'desc'; }
+  page = 1;
+  ['id','filename','status','size_bytes','updated_at'].forEach(c => {
+    const el = document.getElementById('si-' + c);
+    if (el) el.textContent = c === sortBy ? (sortDir === 'desc' ? '▼' : '▲') : '';
+  });
+  loadTransfers();
+}
+
+function clearFilters() {
+  ['f-status','f-dir','f-bank','f-date-from','f-date-to'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  const accSel = document.getElementById('f-account');
+  accSel.innerHTML = '<option value="">All accounts</option>';
+  accSel.disabled = true;
+  sortBy = 'id'; sortDir = 'desc';
+  changeSort('id');
+}
+
+async function loadBanksFilter() {
+  try {
+    banksData = await (await authedFetch('/api/banks')).json();
+    const opts = banksData.map(b => `<option value="${esc(b.id)}">${esc(b.name||b.id)}</option>`).join('');
+    document.getElementById('f-bank').innerHTML = '<option value="">All banks</option>' + opts;
+    document.getElementById('u-bank').innerHTML = '<option value="">Select bank…</option>' + opts;
+    // Auto-select the first bank in the upload form if only one exists
+    if (banksData.length === 1) {
+      document.getElementById('u-bank').value = banksData[0].id;
+      onUploadBankChange();
+    }
+  } catch(e) { console.error('loadBanksFilter:', e); }
+}
+
+function onBankFilterChange() {
+  const bankId = document.getElementById('f-bank').value;
+  const accSel = document.getElementById('f-account');
+  accSel.innerHTML = '<option value="">All accounts</option>';
+  const bank = banksData.find(b => b.id === bankId);
+  if (bank && bank.accounts && bank.accounts.length) {
+    bank.accounts.forEach(a => {
+      accSel.innerHTML += `<option value="${esc(a.id)}">${esc(a.name||a.id)}</option>`;
+    });
+    accSel.disabled = false;
+  } else {
+    accSel.disabled = true;
+  }
+  page = 1; loadTransfers();
+}
+
+function onUploadBankChange() {
+  const bankId = document.getElementById('u-bank').value;
+  const accSel = document.getElementById('u-account');
+  accSel.innerHTML = '<option value="">All accounts</option>';
+  const bank = banksData.find(b => b.id === bankId);
+  if (bank && bank.accounts && bank.accounts.length) {
+    bank.accounts.forEach(a => {
+      accSel.innerHTML += `<option value="${esc(a.id)}">${esc(a.name||a.id)}</option>`;
+    });
+    accSel.disabled = false;
+    accSel.style.opacity = '1';
+    if (bank.accounts.length === 1) accSel.value = bank.accounts[0].id;
+  } else {
+    accSel.disabled = true;
+    accSel.style.opacity = '.6';
+  }
+}
+
+function downloadFile(path, event) {
+  event.stopPropagation();
+  window.location.href = '/api/download?path=' + encodeURIComponent(path);
+}
+
+async function viewFile(path, event) {
+  event.stopPropagation();
+  try {
+    const data = await (await authedFetch('/api/file-content?path=' + encodeURIComponent(path))).json();
+    document.getElementById('fv-title').textContent = data.filename;
+    document.getElementById('fv-meta').textContent =
+      `${fmtBytes(data.size)} · ${data.lines} lines${data.truncated ? ' (first 200 lines shown)' : ''}`;
+    if (data.content === null) {
+      document.getElementById('fv-body').textContent = `File too large to preview (${fmtBytes(data.size)})`;
+    } else {
+      document.getElementById('fv-body').textContent = data.content;
+    }
+    document.getElementById('fv-modal').classList.add('open');
+  } catch(e) { showNotif('fail', '✕', 'Failed to load file: ' + (e.message||e)); }
+}
+
+function closeFvModal() { document.getElementById('fv-modal').classList.remove('open'); }
+
+function renderTable(items) {
+  const tbody = document.getElementById('tbody');
+  if (!items.length) { tbody.innerHTML = '<tr><td class="empty" colspan="9">No transfers match</td></tr>'; return; }
+  tbody.innerHTML = items.map(r => `<tr>
+    <td class="mono">${r.id}</td>
+    <td>${esc(r.filename)}</td>
+    <td><span class="dir d-${r.direction}">${r.direction}</span></td>
+    <td><span class="badge b-${r.status}">${r.status}</span></td>
+    <td class="mono">${fmtBytes(r.size_bytes)}</td>
+    <td class="mono">${r.retries||0}</td>
+    <td class="err" title="${esc(r.error)}">${esc(r.error||'–')}</td>
+    <td class="mono">${r.updated_at||'–'}</td>
+    <td>
+      ${r.status==='failed' && currentRole==='admin'?`<button class="retry" onclick="retry(${r.id}, this)">Retry</button><button class="abandon" onclick="abandon(${r.id})" title="Give up on this transfer — move file to data/error/">Abandon</button>`:''}
+      ${['failed','duplicate','abandoned'].includes(r.status) && currentRole==='admin'?`<button class="del-transfer" onclick="deleteTransfer(${r.id})" title="Permanently delete this record from the database">Delete</button>`:''}
+      <button class="detail-btn" onclick="detail(${r.id})">⋯</button>
+    </td>
+  </tr>`).join('');
+}
+
+function renderPager() {
+  const pages = Math.ceil(totalRecords/perPage)||1;
+  document.getElementById('page-info').textContent = `Page ${page} of ${pages} (${totalRecords.toLocaleString()} total)`;
+  document.getElementById('prev-btn').disabled = page<=1;
+  document.getElementById('next-btn').disabled = page>=pages;
+}
+function changePage(d){ page+=d; loadTransfers(); }
+
+async function retry(id, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  try {
+    const resp = await authedFetch(`/api/transfers/${id}/retry`,{method:'POST'});
+    const body = await resp.json();
+    if (resp.ok && body.ok) {
+      showNotif('ok', '✓', `Retry succeeded for transfer #${id}`);
+    } else {
+      showNotif('fail', '✕', `Retry failed for #${id}: ${body.message||'unknown error'}`);
+    }
+  } catch(e) {
+    showNotif('fail', '✕', `Retry error: ${e.message||e}`);
+  } finally {
+    loadTransfers(); loadSummary();
+  }
+}
+
+async function abandon(id) {
+  if (!confirm(`Abandon transfer #${id}?\n\nThe staged file will be moved to data/error/<date>/<direction>/ for manual review. The transfer will be marked "abandoned" and will NOT be retried.`)) return;
+  try {
+    const resp = await authedFetch(`/api/transfers/${id}/abandon`,{method:'POST'});
+    const body = await resp.json();
+    if (resp.ok && body.ok) {
+      showNotif('info', '🗄', `Transfer #${id} abandoned. File moved to error archive.`);
+    } else {
+      showNotif('fail', '✕', `Abandon failed: ${body.message||'unknown error'}`);
+    }
+  } catch(e) {
+    showNotif('fail', '✕', `Abandon error: ${e.message||e}`);
+  } finally {
+    loadTransfers(); loadSummary();
+  }
+}
+
+async function deleteTransfer(id) {
+  if (!confirm(`Permanently delete transfer #${id}?\n\nThis removes the record and all audit logs from the database. This cannot be undone.`)) return;
+  try {
+    const resp = await authedFetch(`/api/transfers/${id}`, {method:'DELETE'});
+    const body = await resp.json();
+    if (resp.ok && body.ok) {
+      showNotif('info', '🗑', `Transfer #${id} permanently deleted`);
+    } else {
+      showNotif('fail', '✕', `Delete failed: ${body.message||'unknown error'}`);
+    }
+  } catch(e) {
+    showNotif('fail', '✕', `Delete error: ${e.message||e}`);
+  } finally {
+    loadTransfers(); loadSummary();
+  }
+}
+
+async function detail(id) {
+  const r = await(await authedFetch(`/api/transfers/${id}`)).json();
+  document.getElementById('m-title').textContent=`#${r.id}  ${r.filename}`;
+  let h=`<div style="font-size:.84rem;margin-bottom:14px;line-height:1.8">
+    <b>Direction:</b> ${r.direction} &nbsp; <b>Status:</b> <span class="badge b-${r.status}">${r.status}</span><br>
+    <b>Size:</b> ${fmtBytes(r.size_bytes)} &nbsp; <b>Retries:</b> ${r.retries}<br>
+    <b>SHA-256:</b> <span class="mono">${r.sha256||'–'}</span>
+    ${r.archived_path?`<br><b>Archived:</b> <span class="mono" style="word-break:break-all">${esc(r.archived_path)}</span>`:''}
+    ${r.error?`<br><span style="color:var(--red)"><b>Error:</b> ${esc(r.error)}</span>`:''}
+  </div><h4 style="font-size:.75rem;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Audit log</h4>`;
+  h+=(r.logs||[]).map(l=>`<div class="log"><span class="log-t">${l.time}</span><span>${esc(l.message)}</span></div>`).join('');
+  document.getElementById('m-body').innerHTML=h;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+
+async function doUpload() {
+  const file = document.getElementById('u-file').files[0];
+  if (!file) return showNotif('fail', '✕', 'Please select a file first');
+  const bankId = document.getElementById('u-bank').value;
+  if (!bankId) return showNotif('fail', '✕', 'Please select a bank');
+  const accountId = document.getElementById('u-account').value;
+  const direction = document.getElementById('u-dir').value;
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('direction', direction);
+  fd.append('bank_id', bankId);
+  if (accountId) fd.append('account_id', accountId);
+  try {
+    const resp = await authedFetch('/api/upload', {method:'POST', body:fd});
+    const body = await resp.json();
+    if (resp.ok) {
+      const bankLabel = banksData.find(b=>b.id===bankId)?.name || bankId;
+      showNotif('ok', '✓', `Uploaded <b>${esc(file.name)}</b> → ${direction} (${esc(bankLabel)})`);
+      document.getElementById('uzone').classList.remove('show');
+      document.getElementById('u-file').value = '';
+    } else {
+      showNotif('fail', '✕', `Upload failed: ${body.detail || body.message || 'unknown error'}`);
+    }
+  } catch(e) {
+    showNotif('fail', '✕', 'Upload error: ' + (e.message||e));
+  }
+  setTimeout(()=>{loadTransfers();loadSummary()},500);
+}
+
+
+async function checkHealth(){
+  try{const r=await(await fetch('/api/health')).json();
+    document.getElementById('pg-dot').style.color=r.postgres?'var(--green)':'var(--red)';
+  }catch(e){document.getElementById('pg-dot').style.color='var(--red)'}
+}
+
+let seenNotifs = new Set();
+async function loadNotifications(){
+  try{
+    const items = await(await authedFetch('/api/notifications')).json();
+    const newItems = items.filter(n => !seenNotifs.has(n.id));
+    newItems.forEach(n => {
+      seenNotifs.add(n.id);
+      if (n.status === 'duplicate') {
+        showNotif('dup', '⊘', `<b>Duplicate detected:</b> ${esc(n.filename)}${n.error ? ' — '+esc(n.error) : ''}`, n.time);
+      } else {
+        showNotif('fail', '✕', `<b>Transfer failed:</b> ${esc(n.filename)}${n.error ? ' — '+esc(n.error) : ''}`, n.time);
+      }
+    });
+  }catch(e){}
+}
+
+function showNotif(kind, icon, html, time) {
+  const bar = document.getElementById('notif-bar');
+  const div = document.createElement('div');
+  div.className = 'notif notif-' + kind;
+  div.innerHTML = `<span class="icon">${icon}</span>
+    <span class="msg">${html}</span>
+    <span class="time">${time||new Date().toLocaleTimeString()}</span>
+    <button class="dismiss" onclick="this.parentElement.remove()">✕</button>`;
+  bar.prepend(div);
+  while(bar.children.length > 6) bar.lastChild.remove();
+  // auto-dismiss success/info after 6s
+  if (kind === 'ok' || kind === 'info') setTimeout(()=>div.remove(), 6000);
+}
+
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+function fmtBytes(b){if(!b)return'–';if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB'}
+
+document.getElementById('f-status').onchange=()=>{page=1;loadTransfers()};
+document.getElementById('f-dir').onchange=()=>{page=1;loadTransfers()};
+document.getElementById('f-account').onchange=()=>{page=1;loadTransfers()};
+document.getElementById('f-date-from').onchange=()=>{page=1;loadTransfers()};
+document.getElementById('f-date-to').onchange=()=>{page=1;loadTransfers()};
+
+/* ---- User management (admin only) ---- */
+const currentUser = {{ user | tojson }};
+const currentRole = {{ role | tojson }};
+
+async function loadUsers() {
+  if (currentRole !== 'admin') return;
+  try {
+    const users = await (await authedFetch('/api/users')).json();
+    const list = document.getElementById('user-list');
+    if (!users.length) { list.innerHTML = '<span style="color:var(--muted);font-size:.82rem">No users found.</span>'; return; }
+    list.innerHTML = users.map(u => `
+      <div class="user-row">
+        <span class="uname">${esc(u.username)}</span>
+        <span class="urole" style="font-size:.7rem;padding:2px 7px;border-radius:4px;font-weight:600;${u.role==='admin'?'background:rgba(124,110,240,.15);color:var(--accent)':'background:rgba(52,152,219,.12);color:var(--blue)'}">${u.role}</span>
+        <span class="umfa ${u.mfa_enabled ? 'mfa-on' : 'mfa-off'}">${u.mfa_enabled ? '🔐 MFA' : '⚠ No MFA'}</span>
+        <span style="font-size:.72rem;color:var(--muted);flex:1">${u.last_login_at ? 'Last: '+u.last_login_at : 'Never'}</span>
+        <button class="udel" style="color:var(--accent);border-color:rgba(124,110,240,.3)" onclick="openResetModal('${esc(u.username)}')">Reset pw</button>
+        ${u.username !== currentUser ? `<button class="udel" onclick="deleteUser('${esc(u.username)}')">Delete</button>` : '<span style="font-size:.7rem;color:var(--muted);padding:0 6px">(you)</span>'}
+      </div>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function addUser() {
+  if (currentRole !== 'admin') return;
+  const username = document.getElementById('new-username').value.trim();
+  const password = document.getElementById('new-password').value;
+  const role = document.getElementById('new-role').value;
+  if (!username || !password) { showNotif('fail', '✕', 'Username and password are required'); return; }
+  try {
+    const resp = await authedFetch('/api/users', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, password, role})});
+    const body = await resp.json();
+    if (resp.ok && body.ok) {
+      showNotif('ok', '✓', `User '${esc(username)}' created (${role}). They will set up MFA on first login.`);
+      document.getElementById('new-username').value = '';
+      document.getElementById('new-password').value = '';
+      document.getElementById('new-role').value = 'readonly';
+      loadUsers();
+    } else {
+      showNotif('fail', '✕', body.message || 'Failed to create user');
+    }
+  } catch(e) { showNotif('fail', '✕', 'Error: '+e.message); }
+}
+
+async function deleteUser(username) {
+  if (currentRole !== 'admin') return;
+  if (!confirm(`Delete user '${username}'?\n\nThis cannot be undone.`)) return;
+  try {
+    const resp = await authedFetch(`/api/users/${encodeURIComponent(username)}`, {method:'DELETE'});
+    const body = await resp.json();
+    if (resp.ok && body.ok) {
+      showNotif('info', '🗑', `User '${esc(username)}' deleted`);
+      loadUsers();
+    } else {
+      showNotif('fail', '✕', body.message || 'Failed to delete user');
+    }
+  } catch(e) { showNotif('fail', '✕', 'Error: '+e.message); }
+}
+
+let _resetTarget = null;
+function openResetModal(username) {
+  _resetTarget = username;
+  document.getElementById('reset-username-label').textContent = username;
+  document.getElementById('reset-password-input').value = '';
+  document.getElementById('reset-modal').classList.add('open');
+}
+function closeResetModal() {
+  _resetTarget = null;
+  document.getElementById('reset-modal').classList.remove('open');
+}
+async function submitResetPassword() {
+  if (!_resetTarget) return;
+  const password = document.getElementById('reset-password-input').value;
+  if (!password) { showNotif('fail', '✕', 'Enter a new password'); return; }
+  try {
+    const resp = await authedFetch(`/api/users/${encodeURIComponent(_resetTarget)}/reset-password`,
+      {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password})});
+    const body = await resp.json();
+    if (resp.ok && body.ok) {
+      showNotif('ok', '✓', body.message);
+      closeResetModal();
+      loadUsers();
+    } else {
+      showNotif('fail', '✕', body.message || 'Reset failed');
+    }
+  } catch(e) { showNotif('fail', '✕', 'Error: '+e.message); }
+}
+
+function closeAllPanels() {
+  ['uzone','userszone','folderszone'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('show');
+  });
+}
+
+function toggleUsers() {
+  if (currentRole !== 'admin') return;
+  const zone = document.getElementById('userszone');
+  const show = !zone.classList.contains('show');
+  closeAllPanels();
+  zone.classList.toggle('show', show);
+  if (show) loadUsers();
+}
+
+/* ---- Folder browser ---- */
+let _folderPath = '';
+
+function toggleFolders() {
+  const zone = document.getElementById('folderszone');
+  const show = !zone.classList.contains('show');
+  closeAllPanels();
+  zone.classList.toggle('show', show);
+  if (show) loadFolder('');
+}
+
+async function loadFolder(path) {
+  _folderPath = path;
+  const items = document.getElementById('folder-items');
+  items.innerHTML = '<span style="color:var(--muted);font-size:.82rem">Loading…</span>';
+  renderBreadcrumb(path);
+  try {
+    const url = '/api/folders' + (path ? '?path=' + encodeURIComponent(path) : '');
+    const data = await (await authedFetch(url)).json();
+    renderFolderItems(data);
+  } catch(e) {
+    items.innerHTML = `<span style="color:var(--red);font-size:.82rem">Error: ${esc(e.message||String(e))}</span>`;
+  }
+}
+
+function renderBreadcrumb(path) {
+  const crumb = document.getElementById('folder-crumb');
+  const parts = path ? path.split('/') : [];
+  let html = `<span onclick="loadFolder('')">data</span>`;
+  parts.forEach((p, i) => {
+    const subPath = parts.slice(0, i + 1).join('/');
+    html += `<span class="sep">/</span><span onclick="loadFolder('${esc(subPath)}')">${esc(p)}</span>`;
+  });
+  crumb.innerHTML = html;
+}
+
+function renderFolderItems(data) {
+  const items = document.getElementById('folder-items');
+  if (!data.entries || !data.entries.length) {
+    items.innerHTML = '<span style="color:var(--muted);font-size:.82rem">Empty folder</span>';
+    return;
+  }
+  items.innerHTML = data.entries.map(e => {
+    const isDir = e.type === 'dir';
+    const icon = isDir ? '📂' : _fileIcon(e.name);
+    const meta = isDir ? '' : `<span class="fi-meta">${fmtBytes(e.size)} · ${e.mtime ? new Date(e.mtime*1000).toLocaleString() : ''}</span>`;
+    const path = data.path ? data.path + '/' + e.name : e.name;
+    const onclick = isDir ? `onclick="loadFolder('${esc(path)}')"` : '';
+    const actions = isDir ? '' : `<div class="fi-actions">
+      <button class="fi-btn" onclick="viewFile('${esc(path)}',event)" title="View file contents">View</button>
+      <button class="fi-btn fi-btn-dl" onclick="downloadFile('${esc(path)}',event)" title="Download file">↓ Download</button>
+    </div>`;
+    return `<div class="fi${isDir ? '' : ' is-file'}" ${onclick}>
+      <span class="fi-icon">${icon}</span>
+      <span class="fi-name">${esc(e.name)}</span>
+      ${meta}
+      ${actions}
+    </div>`;
+  }).join('');
+}
+
+function _fileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  if (ext === 'csv') return '📄';
+  if (ext === 'mt940' || ext === 'sta') return '🏦';
+  if (ext === 'txt' || ext === 'error') return '📝';
+  return '📃';
+}
+
+loadSummary(); loadTransfers(); checkHealth(); loadNotifications(); loadBanksFilter();
+setInterval(()=>{loadSummary();loadTransfers();loadNotifications()},3000);
+setInterval(checkHealth,30000);
+</script>
+</body>
+</html>

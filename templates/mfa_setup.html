@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Bridge — Set up MFA</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0c0d12;--surface:#161822;--surface2:#1c1f2e;--border:#282b3d;
+    --text:#dfe0e6;--muted:#747a92;--accent:#7c6ef0;--red:#e74c3c;--green:#2ecc71;
+    --font:'Segoe UI',system-ui,sans-serif;--mono:'Consolas','SF Mono',monospace;
+  }
+  html,body{height:100%}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);
+       display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+        padding:32px 28px;width:100%;max-width:420px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .brand .logo{font-size:1.4rem}
+  .brand h1{font-size:1.05rem;font-weight:600}
+  .sub{font-size:.78rem;color:var(--muted);margin-bottom:20px;line-height:1.6}
+  .steps{counter-reset:step;margin-bottom:20px}
+  .step{display:flex;gap:12px;margin-bottom:14px;font-size:.84rem;line-height:1.5}
+  .step-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--accent);
+            color:#fff;font-size:.7rem;font-weight:700;display:flex;align-items:center;
+            justify-content:center;margin-top:1px}
+  .qr-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+           padding:16px;text-align:center;margin-bottom:16px}
+  .qr-box svg{max-width:180px;height:auto;background:#fff;padding:6px;border-radius:4px}
+  .qr-no-svg{font-size:.78rem;color:var(--muted);line-height:1.5}
+  .secret-box{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+              padding:8px 12px;font-family:var(--mono);font-size:.82rem;letter-spacing:.08em;
+              color:var(--accent);text-align:center;margin-bottom:16px;word-break:break-all;
+              cursor:pointer;user-select:all}
+  .secret-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;
+                letter-spacing:.05em;margin-bottom:4px}
+  label{display:block;font-size:.72rem;color:var(--muted);text-transform:uppercase;
+        letter-spacing:.05em;margin-bottom:6px;margin-top:14px}
+  input{width:100%;font-family:var(--mono);font-size:1.1rem;letter-spacing:.18em;
+        padding:10px 12px;border-radius:6px;border:1px solid var(--border);
+        background:var(--surface2);color:var(--text);text-align:center}
+  input:focus{outline:none;border-color:var(--accent)}
+  button{width:100%;font-family:var(--font);font-size:.88rem;font-weight:600;
+         padding:11px;border-radius:6px;border:none;background:var(--accent);
+         color:#fff;cursor:pointer;margin-top:16px}
+  button:hover{filter:brightness(1.1)}
+  .err{background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);
+       color:var(--red);padding:9px 12px;border-radius:6px;font-size:.8rem;margin-bottom:4px}
+  .foot{text-align:center;font-size:.7rem;color:var(--muted);margin-top:18px}
+  .badge-mfa{display:inline-block;background:rgba(124,110,240,.15);border:1px solid rgba(124,110,240,.3);
+             color:var(--accent);font-size:.68rem;font-weight:600;padding:2px 8px;border-radius:4px;
+             text-transform:uppercase;letter-spacing:.05em;margin-left:8px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <span class="logo">⇋</span>
+      <h1>Bridge <span class="badge-mfa">MFA Setup</span></h1>
+    </div>
+    <div class="sub">
+      Welcome, <b>{{ username }}</b>. Multi-factor authentication is required for all accounts.
+      Complete the one-time setup below.
+    </div>
+
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+
+    <div class="steps">
+      <div class="step"><span class="step-num">1</span><span>Install an authenticator app on your phone — <b>Google Authenticator</b>, <b>Authy</b>, or any TOTP-compatible app.</span></div>
+      <div class="step"><span class="step-num">2</span><span>Scan the QR code below, or enter the secret key manually.</span></div>
+      <div class="step"><span class="step-num">3</span><span>Enter the 6-digit code your app shows and click <b>Activate MFA</b>.</span></div>
+    </div>
+
+    <div class="qr-box">
+      {% if qr_svg %}
+        {{ qr_svg | safe }}
+      {% else %}
+        <div class="qr-no-svg">
+          QR code unavailable. Use the secret key below to add manually.<br>
+          <small>(<code>pip install qrcode</code> to enable QR codes)</small>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="secret-label">Secret key (tap to select)</div>
+    <div class="secret-box" title="Tap to select and copy">{{ secret }}</div>
+
+    <form method="post" action="/mfa-setup">
+      <label for="token">6-digit code from your app</label>
+      <input id="token" name="token" type="text" inputmode="numeric"
+             pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"
+             placeholder="000000" autofocus required/>
+      <button type="submit">Activate MFA</button>
+    </form>
+
+    <div class="foot">Store your secret key safely — you'll need it if you lose your phone.</div>
+  </div>
+</body>
+</html>
