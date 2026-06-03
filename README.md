@@ -1,6 +1,6 @@
 # Bridge — NetSuite ↔ Bank SFTP Middleware
 
-> Secure, self-hosted middleware running on OCI (Oracle Cloud Infrastructure) at **rove.banksuite.vantheon.com** that automatically moves payment files between NetSuite and bank SFTP servers, with a web dashboard and full audit trail.
+> Secure, self-hosted middleware running on OCI (Oracle Cloud Infrastructure) at **** that automatically moves payment files between NetSuite and bank SFTP servers, with a web dashboard and full audit trail.
 
 ---
 
@@ -54,7 +54,7 @@ NetSuite can place payment files on its own SFTP server, but it cannot push dire
 | Item | Value |
 |---|---|
 | Platform | Oracle Cloud Infrastructure (OCI) VM — Ubuntu 24.04 |
-| Dashboard URL | `https://rove.banksuite.vantheon.com` |
+| Dashboard URL | `https://r.com` |
 | App process | systemd service `bridge` |
 | App runs as | OS user `bridge`, working directory `/opt/bridge` |
 | App port (internal) | 8000 (bound to `127.0.0.1` — not exposed directly) |
@@ -74,7 +74,7 @@ Think of Bridge like a secure postal relay:
 5. **Bridge saves a copy** in its local archive and writes a record to the database
 6. **The bank drops a statement in its own outbox** — Bridge picks that up and delivers it back to NetSuite
 
-All events are logged in PostgreSQL. The web dashboard at `https://rove.banksuite.vantheon.com` shows every transfer with its status, logs, and hashes. Operators can manually retry failures or upload files directly.
+All events are logged in PostgreSQL. The web dashboard at `https://r.com` shows every transfer with its status, logs, and hashes. Operators can manually retry failures or upload files directly.
 
 > **SFTP** = SSH File Transfer Protocol. A secure way to transfer files over the internet, encrypted using SSH.
 >
@@ -165,7 +165,7 @@ data/
 ### For production (already set up on the OCI instance)
 
 - Ubuntu 24.04 server with reserved public IP
-- Domain `rove.banksuite.vantheon.com` mapped via DNS A record
+- Domain `r.com` mapped via DNS A record
 - Python 3.11+, PostgreSQL, nginx, certbot, fail2ban
 - Ports 22, 80, 443 open in OCI Security List and ufw
 
@@ -457,9 +457,9 @@ INFO     Banks reloaded: ['existingbank', 'newbank']
    - Port 22/TCP — SSH (restrict to your office IP if possible)
    - Port 80/TCP — HTTP (nginx redirect to HTTPS)
    - Port 443/TCP — HTTPS (public)
-3. The DNS A record for `rove.banksuite.vantheon.com` must point to the reserved IP. Verify with:
+3. The DNS A record for `r.com` must point to the reserved IP. Verify with:
    ```bash
-   dig rove.banksuite.vantheon.com
+   dig r.com
    ```
 
 ### Step 2 — OS hardening
@@ -663,16 +663,16 @@ Create `/etc/nginx/sites-available/bridge`:
 ```nginx
 server {
     listen 80;
-    server_name rove.banksuite.vantheon.com;
+    server_name r.com;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name rove.banksuite.vantheon.com;
+    server_name r.com;
 
-    ssl_certificate     /etc/letsencrypt/live/rove.banksuite.vantheon.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/rove.banksuite.vantheon.com/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/r.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/r.com/privkey.pem;
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_ciphers         HIGH:!aNULL:!MD5;
     ssl_prefer_server_ciphers on;
@@ -710,7 +710,7 @@ sudo nginx -t                  # verify config — must say "test is successful"
 sudo systemctl reload nginx
 
 # Issue TLS certificate
-sudo certbot --nginx -d rove.banksuite.vantheon.com \
+sudo certbot --nginx -d r.com \
     --non-interactive --agree-tos -m admin@vantheon.com
 
 # Verify auto-renewal timer
@@ -753,7 +753,7 @@ sudo fail2ban-client status
 
 ## 10. First Login and User Setup
 
-1. Open `https://rove.banksuite.vantheon.com` in your browser
+1. Open `https://r.com` in your browser
 2. Log in with `ADMIN_USER` / `ADMIN_PASS` from `.env`
 3. On first login, you are redirected to **MFA Setup** — scan the QR code with Google Authenticator or Authy
 4. Enter the 6-digit code to complete enrollment
@@ -767,7 +767,7 @@ sudo fail2ban-client status
 
 ## 11. Features and Functionality
 
-### Dashboard (`https://rove.banksuite.vantheon.com`)
+### Dashboard (`https://r.com`)
 
 | Feature | Description |
 |---|---|
@@ -1755,7 +1755,7 @@ sudo systemctl status bridge
 sudo journalctl -u bridge -f
 
 # Health API
-curl -sk https://rove.banksuite.vantheon.com/api/health
+curl -sk https://r.com/api/health
 
 # Disk usage
 du -sh /opt/bridge/data/*/
